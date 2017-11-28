@@ -4,6 +4,7 @@ package hitbtc
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -32,11 +33,26 @@ func NewWithCustomTimeout(apiKey, apiSecret string, timeout time.Duration) *HitB
 	return &HitBtc{client}
 }
 
-// handleErr gets JSON response from HitBtc API en deal with error
-func handleErr(r jsonResponse) error {
-	if r.Code != 0 {
-		return errors.New(r.Message)
+// handleErr gets JSON response from livecoin API en deal with error
+func handleErr(r interface{}) error {
+	switch v := r.(type) {
+	case map[string]interface{}:
+		error := r.(map[string]interface{})["error"]
+		if error != nil {
+			switch v := error.(type) {
+			case map[string]interface{}:
+				errorMessage := error.(map[string]interface{})["message"]
+				return errors.New(errorMessage.(string))
+			default:
+				return fmt.Errorf("I don't know about type %T!\n", v)
+			}
+		}
+	case []interface{}:
+		return nil
+	default:
+		return fmt.Errorf("I don't know about type %T!\n", v)
 	}
+
 	return nil
 }
 
@@ -56,13 +72,13 @@ func (b *HitBtc) GetCurrencies() (currencies []Currency, err error) {
 	if err != nil {
 		return
 	}
-	//var response jsonResponse
-	//if err = json.Unmarshal(r, &response); err != nil {
-	//	return
-	//}
-	//if err = handleErr(response); err != nil {
-	//	return
-	//}
+	var response interface{}
+	if err = json.Unmarshal(r, &response); err != nil {
+		return
+	}
+	if err = handleErr(response); err != nil {
+		return
+	}
 	err = json.Unmarshal(r, &currencies)
 	return
 }
@@ -73,13 +89,13 @@ func (b *HitBtc) GetSymbols() (symbols []Symbol, err error) {
 	if err != nil {
 		return
 	}
-	//var response jsonResponse
-	//if err = json.Unmarshal(r, &response); err != nil {
-	//	return
-	//}
-	//if err = handleErr(response); err != nil {
-	//	return
-	//}
+	var response interface{}
+	if err = json.Unmarshal(r, &response); err != nil {
+		return
+	}
+	if err = handleErr(response); err != nil {
+		return
+	}
 	err = json.Unmarshal(r, &symbols)
 	return
 }
@@ -90,14 +106,14 @@ func (b *HitBtc) GetTicker(market string) (ticker Ticker, err error) {
 	if err != nil {
 		return
 	}
-	var response jsonResponse
+	var response interface{}
 	if err = json.Unmarshal(r, &response); err != nil {
 		return
 	}
 	if err = handleErr(response); err != nil {
 		return
 	}
-	err = json.Unmarshal(response.Result, &ticker)
+	err = json.Unmarshal(r, &ticker)
 	return
 }
 
@@ -111,13 +127,13 @@ func (b *HitBtc) GetBalances() (balances []Balance, err error) {
 	if err != nil {
 		return
 	}
-	//var response json.RawMessage
-	//if err = json.Unmarshal(r, &response); err != nil {
-	//	return
-	//}
-	//if err = handleErr(response); err != nil {
-	//	return
-	//}
+	var response interface{}
+	if err = json.Unmarshal(r, &response); err != nil {
+		return
+	}
+	if err = handleErr(response); err != nil {
+		return
+	}
 	err = json.Unmarshal(r, &balances)
 	return
 }
@@ -129,13 +145,13 @@ func (b *HitBtc) GetBalance(currency string) (balance Balance, err error) {
 	if err != nil {
 		return
 	}
-	//var response jsonResponse
-	//if err = json.Unmarshal(r, &response); err != nil {
-	//	return
-	//}
-	//if err = handleErr(response); err != nil {
-	//	return
-	//}
+	var response interface{}
+	if err = json.Unmarshal(r, &response); err != nil {
+		return
+	}
+	if err = handleErr(response); err != nil {
+		return
+	}
 	var balances []Balance
 	currency = strings.ToUpper(currency)
 	err = json.Unmarshal(r, &balances)
@@ -161,13 +177,13 @@ func (b *HitBtc) GetTrades(currencyPair string) (trades []Trade, err error) {
 	if err != nil {
 		return
 	}
-	//var response jsonResponse
-	//if err = json.Unmarshal(r, &response); err != nil {
-	//	return
-	//}
-	//if err = handleErr(response); err != nil {
-	//	return
-	//}
+	var response interface{}
+	if err = json.Unmarshal(r, &response); err != nil {
+		return
+	}
+	if err = handleErr(response); err != nil {
+		return
+	}
 	err = json.Unmarshal(r, &trades)
 	return
 }
@@ -195,13 +211,13 @@ func (b *HitBtc) GetTransactions(start uint64, end uint64, limit uint32) (transa
 	if err != nil {
 		return
 	}
-	//var response jsonResponse
-	//if err = json.Unmarshal(r, &response); err != nil {
-	//	return
-	//}
-	//if err = handleErr(response); err != nil {
-	//	return
-	//}
+	var response interface{}
+	if err = json.Unmarshal(r, &response); err != nil {
+		return
+	}
+	if err = handleErr(response); err != nil {
+		return
+	}
 	err = json.Unmarshal(r, &transactions)
 	return
 }
