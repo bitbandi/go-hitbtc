@@ -21,7 +21,7 @@ func main() {
 
 	for i, _ := range balances {
 		if balances[i].Currency == "BTC" {
-			fmt.Println(balances[i].Value)
+			fmt.Println(balances[i].Available)
 		}
 	}
 
