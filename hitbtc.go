@@ -226,8 +226,10 @@ func (b *HitBtc) CancelOrder(currencyPair string) (orders []Order, err error) {
     return
 }
 
-func (b *HitBtc) GetOrder(orderId string) (order Order, err error) {
-    r, err := b.client.do("GET", "order/"+orderId, nil, true)
+func (b *HitBtc) GetOrder(orderId string) (orders []Order, err error) {
+    payload := make(map[string]string)
+    payload["clientOrderId"] = orderId
+    r, err := b.client.do("GET", "history/order", payload, true)
     if err != nil {
         return
     }
@@ -238,7 +240,23 @@ func (b *HitBtc) GetOrder(orderId string) (order Order, err error) {
     if err = handleErr(response); err != nil {
         return
     }
-    err = json.Unmarshal(r, &order)
+    err = json.Unmarshal(r, &orders)
+    return
+}
+
+func (b *HitBtc) GetOrderHistory() (orders []Order, err error) {
+    r, err := b.client.do("GET", "history/order", nil, true)
+    if err != nil {
+        return
+    }
+    var response interface{}
+    if err = json.Unmarshal(r, &response); err != nil {
+        return
+    }
+    if err = handleErr(response); err != nil {
+        return
+    }
+    err = json.Unmarshal(r, &orders)
     return
 }
 
