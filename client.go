@@ -127,9 +127,6 @@ func (c *client) do(method string, ressource string, payload map[string]string, 
 	if err != nil {
 		return
 	}
-	if method == "POST" || method == "PUT" {
-		req.Header.Add("Content-Type", "application/json;charset=utf-8")
-	}
 	req.Header.Add("Accept", "application/json")
 
 	// Auth
