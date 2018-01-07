@@ -117,6 +117,24 @@ func (b *HitBtc) GetTicker(market string) (ticker Ticker, err error) {
 	return
 }
 
+// GetTicker is used to get the current ticker values for all markets.
+func (b *HitBtc) GetAllTicker() (tickers []Ticker, err error) {
+    r, err := b.client.do("GET", "public/ticker", nil, false)
+    if err != nil {
+        return
+    }
+    var response interface{}
+    if err = json.Unmarshal(r, &response); err != nil {
+        return
+    }
+    if err = handleErr(response); err != nil {
+        return
+    }
+    err = json.Unmarshal(r, &tickers)
+    return
+}
+
+
 // Market
 
 // Account
@@ -186,6 +204,101 @@ func (b *HitBtc) GetTrades(currencyPair string) (trades []Trade, err error) {
 	}
 	err = json.Unmarshal(r, &trades)
 	return
+}
+
+func (b *HitBtc) CancelOrder(currencyPair string) (orders []Order, err error) {
+    payload := make(map[string]string)
+    if currencyPair != "all" {
+        payload["symbol"] = currencyPair
+    }
+    r, err := b.client.do("DELETE", "order", payload, true)
+    if err != nil {
+        return
+    }
+    var response interface{}
+    if err = json.Unmarshal(r, &response); err != nil {
+        return
+    }
+    if err = handleErr(response); err != nil {
+        return
+    }
+    err = json.Unmarshal(r, &orders)
+    return
+}
+
+func (b *HitBtc) GetOrder(orderId string) (orders []Order, err error) {
+    payload := make(map[string]string)
+    payload["clientOrderId"] = orderId
+    r, err := b.client.do("GET", "history/order", payload, true)
+    if err != nil {
+        return
+    }
+    var response interface{}
+    if err = json.Unmarshal(r, &response); err != nil {
+        return
+    }
+    if err = handleErr(response); err != nil {
+        return
+    }
+    err = json.Unmarshal(r, &orders)
+    return
+}
+
+func (b *HitBtc) GetOrderHistory() (orders []Order, err error) {
+    r, err := b.client.do("GET", "history/order", nil, true)
+    if err != nil {
+        return
+    }
+    var response interface{}
+    if err = json.Unmarshal(r, &response); err != nil {
+        return
+    }
+    if err = handleErr(response); err != nil {
+        return
+    }
+    err = json.Unmarshal(r, &orders)
+    return
+}
+
+func (b *HitBtc) GetOpenOrders() (orders []Order, err error) {
+    r, err := b.client.do("GET", "order", nil, true)
+    if err != nil {
+        return
+    }
+    var response interface{}
+    if err = json.Unmarshal(r, &response); err != nil {
+        return
+    }
+    if err = handleErr(response); err != nil {
+        return
+    }
+    err = json.Unmarshal(r, &orders)
+    return
+}
+
+func (b *HitBtc) PlaceOrder(requestOrder Order) (responseOrder Order, err error) {
+    payload := make(map[string]string)
+
+    payload["symbol"] = requestOrder.Symbol
+    payload["side"] = requestOrder.Side
+    payload["type"] = requestOrder.Type
+    payload["timeInForce"] = requestOrder.TimeInForce
+    payload["quantity"] = fmt.Sprintf("%.8f", requestOrder.Quantity)
+    payload["price"] = fmt.Sprintf("%.8f", requestOrder.Price)
+
+    r, err := b.client.do("PUT", "order/"+requestOrder.ClientOrderId, payload, true)
+    if err != nil {
+        return
+    }
+    var response interface{}
+    if err = json.Unmarshal(r, &response); err != nil {
+        return
+    }
+    if err = handleErr(response); err != nil {
+        return
+    }
+    err = json.Unmarshal(r, &responseOrder)
+    return
 }
 
 // GetTransactions is used to retrieve your withdrawal and deposit history
