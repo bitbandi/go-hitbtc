@@ -61,9 +61,9 @@ type HitBtc struct {
 	client *client
 }
 
-// set enable/disable http request/response dump
-func (c *HitBtc) SetDebug(enable bool) {
-	c.client.debug = enable
+// SetDebug sets enable/disable http request/response dump
+func (b *HitBtc) SetDebug(enable bool) {
+	b.client.debug = enable
 }
 
 // GetCurrencies is used to get all supported currencies at HitBtc along with other meta data.
@@ -117,7 +117,7 @@ func (b *HitBtc) GetTicker(market string) (ticker Ticker, err error) {
 	return
 }
 
-// GetTicker is used to get the current ticker values for all markets.
+// GetAllTicker is used to get the current ticker values for all markets.
 func (b *HitBtc) GetAllTicker() (tickers []Ticker, err error) {
 	r, err := b.client.do("GET", "public/ticker", nil, false)
 	if err != nil {
@@ -133,7 +133,6 @@ func (b *HitBtc) GetAllTicker() (tickers []Ticker, err error) {
 	err = json.Unmarshal(r, &tickers)
 	return
 }
-
 
 // Market
 
@@ -206,6 +205,7 @@ func (b *HitBtc) GetTrades(currencyPair string) (trades []Trade, err error) {
 	return
 }
 
+// CancelOrder cancels a pending order
 func (b *HitBtc) CancelOrder(currencyPair string) (orders []Order, err error) {
 	payload := make(map[string]string)
 	if currencyPair != "all" {
@@ -226,6 +226,7 @@ func (b *HitBtc) CancelOrder(currencyPair string) (orders []Order, err error) {
 	return
 }
 
+// GetOrder gets a pending order data.
 func (b *HitBtc) GetOrder(orderId string) (orders []Order, err error) {
 	payload := make(map[string]string)
 	payload["clientOrderId"] = orderId
@@ -244,6 +245,7 @@ func (b *HitBtc) GetOrder(orderId string) (orders []Order, err error) {
 	return
 }
 
+// GetOrderHistory gets the history of orders for an user.
 func (b *HitBtc) GetOrderHistory() (orders []Order, err error) {
 	r, err := b.client.do("GET", "history/order", nil, true)
 	if err != nil {
@@ -260,6 +262,7 @@ func (b *HitBtc) GetOrderHistory() (orders []Order, err error) {
 	return
 }
 
+// GetOpenOrders gets the open orders of an user.
 func (b *HitBtc) GetOpenOrders() (orders []Order, err error) {
 	r, err := b.client.do("GET", "order", nil, true)
 	if err != nil {
@@ -276,6 +279,7 @@ func (b *HitBtc) GetOpenOrders() (orders []Order, err error) {
 	return
 }
 
+// PlaceOrder creates a new order.
 func (b *HitBtc) PlaceOrder(requestOrder Order) (responseOrder Order, err error) {
 	payload := make(map[string]string)
 
