@@ -61,9 +61,9 @@ type HitBtc struct {
 	client *client
 }
 
-// set enable/disable http request/response dump
-func (c *HitBtc) SetDebug(enable bool) {
-	c.client.debug = enable
+// SetDebug sets enable/disable http request/response dump
+func (b *HitBtc) SetDebug(enable bool) {
+	b.client.debug = enable
 }
 
 // GetCurrencies is used to get all supported currencies at HitBtc along with other meta data.
@@ -117,23 +117,22 @@ func (b *HitBtc) GetTicker(market string) (ticker Ticker, err error) {
 	return
 }
 
-// GetTicker is used to get the current ticker values for all markets.
+// GetAllTicker is used to get the current ticker values for all markets.
 func (b *HitBtc) GetAllTicker() (tickers []Ticker, err error) {
-    r, err := b.client.do("GET", "public/ticker", nil, false)
-    if err != nil {
-        return
-    }
-    var response interface{}
-    if err = json.Unmarshal(r, &response); err != nil {
-        return
-    }
-    if err = handleErr(response); err != nil {
-        return
-    }
-    err = json.Unmarshal(r, &tickers)
-    return
+	r, err := b.client.do("GET", "public/ticker", nil, false)
+	if err != nil {
+		return
+	}
+	var response interface{}
+	if err = json.Unmarshal(r, &response); err != nil {
+		return
+	}
+	if err = handleErr(response); err != nil {
+		return
+	}
+	err = json.Unmarshal(r, &tickers)
+	return
 }
-
 
 // Market
 
@@ -206,99 +205,104 @@ func (b *HitBtc) GetTrades(currencyPair string) (trades []Trade, err error) {
 	return
 }
 
+// CancelOrder cancels a pending order
 func (b *HitBtc) CancelOrder(currencyPair string) (orders []Order, err error) {
-    payload := make(map[string]string)
-    if currencyPair != "all" {
-        payload["symbol"] = currencyPair
-    }
-    r, err := b.client.do("DELETE", "order", payload, true)
-    if err != nil {
-        return
-    }
-    var response interface{}
-    if err = json.Unmarshal(r, &response); err != nil {
-        return
-    }
-    if err = handleErr(response); err != nil {
-        return
-    }
-    err = json.Unmarshal(r, &orders)
-    return
+	payload := make(map[string]string)
+	if currencyPair != "all" {
+		payload["symbol"] = currencyPair
+	}
+	r, err := b.client.do("DELETE", "order", payload, true)
+	if err != nil {
+		return
+	}
+	var response interface{}
+	if err = json.Unmarshal(r, &response); err != nil {
+		return
+	}
+	if err = handleErr(response); err != nil {
+		return
+	}
+	err = json.Unmarshal(r, &orders)
+	return
 }
 
+// GetOrder gets a pending order data.
 func (b *HitBtc) GetOrder(orderId string) (orders []Order, err error) {
-    payload := make(map[string]string)
-    payload["clientOrderId"] = orderId
-    r, err := b.client.do("GET", "history/order", payload, true)
-    if err != nil {
-        return
-    }
-    var response interface{}
-    if err = json.Unmarshal(r, &response); err != nil {
-        return
-    }
-    if err = handleErr(response); err != nil {
-        return
-    }
-    err = json.Unmarshal(r, &orders)
-    return
+	payload := make(map[string]string)
+	payload["clientOrderId"] = orderId
+	r, err := b.client.do("GET", "history/order", payload, true)
+	if err != nil {
+		return
+	}
+	var response interface{}
+	if err = json.Unmarshal(r, &response); err != nil {
+		return
+	}
+	if err = handleErr(response); err != nil {
+		return
+	}
+	err = json.Unmarshal(r, &orders)
+	return
 }
 
+// GetOrderHistory gets the history of orders for an user.
 func (b *HitBtc) GetOrderHistory() (orders []Order, err error) {
-    r, err := b.client.do("GET", "history/order", nil, true)
-    if err != nil {
-        return
-    }
-    var response interface{}
-    if err = json.Unmarshal(r, &response); err != nil {
-        return
-    }
-    if err = handleErr(response); err != nil {
-        return
-    }
-    err = json.Unmarshal(r, &orders)
-    return
+	r, err := b.client.do("GET", "history/order", nil, true)
+	if err != nil {
+		return
+	}
+	var response interface{}
+	if err = json.Unmarshal(r, &response); err != nil {
+		return
+	}
+	if err = handleErr(response); err != nil {
+		return
+	}
+	err = json.Unmarshal(r, &orders)
+	return
 }
 
+// GetOpenOrders gets the open orders of an user.
 func (b *HitBtc) GetOpenOrders() (orders []Order, err error) {
-    r, err := b.client.do("GET", "order", nil, true)
-    if err != nil {
-        return
-    }
-    var response interface{}
-    if err = json.Unmarshal(r, &response); err != nil {
-        return
-    }
-    if err = handleErr(response); err != nil {
-        return
-    }
-    err = json.Unmarshal(r, &orders)
-    return
+	r, err := b.client.do("GET", "order", nil, true)
+	if err != nil {
+		return
+	}
+	var response interface{}
+	if err = json.Unmarshal(r, &response); err != nil {
+		return
+	}
+	if err = handleErr(response); err != nil {
+		return
+	}
+	err = json.Unmarshal(r, &orders)
+	return
 }
 
+// PlaceOrder creates a new order.
 func (b *HitBtc) PlaceOrder(requestOrder Order) (responseOrder Order, err error) {
-    payload := make(map[string]string)
+	payload := make(map[string]string)
 
-    payload["symbol"] = requestOrder.Symbol
-    payload["side"] = requestOrder.Side
-    payload["type"] = requestOrder.Type
-    payload["timeInForce"] = requestOrder.TimeInForce
-    payload["quantity"] = fmt.Sprintf("%.8f", requestOrder.Quantity)
-    payload["price"] = fmt.Sprintf("%.8f", requestOrder.Price)
+	payload["symbol"] = requestOrder.Symbol
+	payload["side"] = requestOrder.Side
+	payload["type"] = requestOrder.Type
+	payload["timeInForce"] = requestOrder.TimeInForce
+	payload["quantity"] = fmt.Sprintf("%.8f", requestOrder.Quantity)
+	payload["price"] = fmt.Sprintf("%.8f", requestOrder.Price)
 
-    r, err := b.client.do("PUT", "order/"+requestOrder.ClientOrderId, payload, true)
-    if err != nil {
-        return
-    }
-    var response interface{}
-    if err = json.Unmarshal(r, &response); err != nil {
-        return
-    }
-    if err = handleErr(response); err != nil {
-        return
-    }
-    err = json.Unmarshal(r, &responseOrder)
-    return
+	r, err := b.client.do("PUT", "order/"+requestOrder.ClientOrderId, payload, true)
+	if err != nil {
+		return
+	}
+	var response interface{}
+	if err = json.Unmarshal(r, &response); err != nil {
+		return
+	}
+	if err = handleErr(response); err != nil {
+		return
+	}
+	err = json.Unmarshal(r, &responseOrder)
+	return
 }
 
 // GetTransactions is used to retrieve your withdrawal and deposit history
