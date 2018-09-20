@@ -72,13 +72,13 @@ func (c *WSClient) GetCurrencyInfo(symbol string) (*WSGetCurrencyResponse, error
 	return &response, nil
 }
 
-// WSGetSymbolsRequest is get symbols request type on websocket
-type WSGetSymbolsRequest struct {
+// WSGetSymbolRequest is get symbols request type on websocket
+type WSGetSymbolRequest struct {
 	Symbol string `json:"symbol,required"`
 }
 
-// WSGetSymbolsResponse  is get symbols response type on websocket
-type WSGetSymbolsResponse struct {
+// WSGetSymbolResponse is get symbols response type on websocket
+type WSGetSymbolResponse struct {
 	ID                   string `json:"id,required"`
 	BaseCurrency         string `json:"baseCurrency,required"`
 	QuoteCurrency        string `json:"quoteCurrency,required"`
@@ -87,6 +87,18 @@ type WSGetSymbolsResponse struct {
 	TakeLiquidityRate    string `json:"takeLiquidityRate,required"`
 	ProvideLiquidityRate string `json:"provideLiquidityRate,required"`
 	FeeCurrency          string `json:"feeCurrency,required"`
+}
+
+// GetSymbol obtains the data of a market.
+func (c *WSClient) GetSymbol(symbol string) (*WSGetSymbolResponse, error) {
+	var request = WSGetSymbolRequest{Symbol: symbol}
+	var response WSGetSymbolResponse
+
+	err := c.conn.Call(context.Background(), "getSymbol", request, &response)
+	if err != nil {
+		return nil, errors.Annotate(err, "Hitbtc GetSymbol")
+	}
+	return &response, nil
 }
 
 // WSSubscribeTickerRequest is get symbols request type on websocket
