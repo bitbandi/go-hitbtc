@@ -2,6 +2,7 @@ package hitbtc
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -12,15 +13,91 @@ import (
 
 const wsAPIURL string = "wss://api.hitbtc.com/api/2/ws"
 
-type noopHandler struct{}
+// ResponseChannels handles all incoming data from the hitbtc connection.
+type ResponseChannels struct {
+	Notifications NotificationChannels
 
-func (noopHandler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) {}
+	OrderbookFeed chan WSNotificationOrderbookSnapshot
 
-var noopHandle = noopHandler{}
+	Errors chan error
+}
+
+// NotificationChannels contains all the notifications from hitbtc for subscribed feeds.
+type NotificationChannels struct {
+	TickerFeed chan WSNotificationTickerResponse
+	OrderBookFeed chan WSNotificationOrderbookUpdate
+}
+
+// Handle handles all incoming connections and fills the channels properly.
+func (h *ResponseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) {
+	if req.Params != nil {
+		message := *req.Params
+		switch req.Method {
+		case "ticker":
+			var msg WSNotificationTickerResponse
+			err := json.Unmarshal(message, &msg)
+			if err != nil {
+				h.Errors <- err
+			} else {
+				h.NOtifications.TickerFeed <- msg
+			}
+		case "snapshotOrderbook":
+			var msg WSNotificationOrderbookSnapshot
+			err := json.Unmarshal(message, &msg)
+			if err != nil {
+				h.Errors <- err
+			} else {
+				h.OrderbookFeed <- msg
+			}
+		case "updateOrderbook":
+			var msg WSNotificationOrderbookUpdate
+			err := json.Unmarshal(message, &msg)
+			if err != nil {
+				h.Errors <- err
+			} else {
+				h.Notifications.OrderBookFeed <- msg
+			}
+		case "snapshotTrades":
+			var msg WSNotificationTradesSnapshot
+			err := json.Unmarshal(message, &msg)
+			if err != nil {
+				h.Errors <- err
+			} else {
+				//h.OrderbookFeed <- msg
+			}
+		case "updateTrades":
+			var msg WSNotificationTradesUpdate
+			err := json.Unmarshal(message, &msg)
+			if err != nil {
+				h.Errors <- err
+			} else {
+				//h.OrderbookFeed <- msg
+			}
+		case "snapshotCandles":
+			panic("missing")
+			err := json.Unmarshal(message, &msg)
+			if err != nil {
+				h.Errors <- err
+			} else {
+				//h.OrderbookFeed <- msg
+			}
+		case "updateCandles":
+			panic("missing")
+			var msg WSNotificationOrderbookSnapshot
+			err := json.Unmarshal(message, &msg)
+			if err != nil {
+				h.Errors <- err
+			} else {
+				//h.OrderbookFeed <- msg
+			}
+
+	}
+}
 
 // WSClient represents a JSON RPC v2 Connection over Websocket,
 type WSClient struct {
-	conn *jsonrpc2.Conn
+	conn    *jsonrpc2.Conn
+	handler jsonrpc2.Handler
 }
 
 // NewWSClient creates a new WSClient
@@ -30,8 +107,11 @@ func NewWSClient() (*WSClient, error) {
 		return nil, err
 	}
 
+	handler := &ResponseChannels{}
+
 	return &WSClient{
-		conn: jsonrpc2.NewConn(context.Background(), jsonrpc2ws.NewObjectStream(conn), noopHandle),
+		conn:    jsonrpc2.NewConn(context.Background(), jsonrpc2ws.NewObjectStream(conn), handler),
+		handler: handler,
 	}, nil
 }
 
@@ -136,7 +216,7 @@ type WSNotificationOrderbookSnapshot struct {
 	Ask      []WSSubtypeTrade `json:"ask,required"`
 	Bid      []WSSubtypeTrade `json:"bid,required"`
 	Symbol   string           `json:"symbol,required"`
-	Sequence int64            `json:"sequence,required"`
+	Sequence int64            `json:"sequence,required"` // used to see if update is the latest received
 }
 
 // WSNotificationOrderbookUpdate is notification response type to orderbook snapshot on websocket
@@ -144,7 +224,7 @@ type WSNotificationOrderbookUpdate struct {
 	Ask      []WSSubtypeTrade `json:"ask,required"`
 	Bid      []WSSubtypeTrade `json:"bid,required"`
 	Symbol   string           `json:"symbol,required"`
-	Sequence int64            `json:"sequence,required"`
+	Sequence int64            `json:"sequence,required"` // used to see if the snapshot is the latest
 }
 
 // WSSubscribeTradesRequest is subscribe request type to trades on websocket
