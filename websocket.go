@@ -24,7 +24,7 @@ type ResponseChannels struct {
 
 // NotificationChannels contains all the notifications from hitbtc for subscribed feeds.
 type NotificationChannels struct {
-	TickerFeed chan WSNotificationTickerResponse
+	TickerFeed    chan WSNotificationTickerResponse
 	OrderBookFeed chan WSNotificationOrderbookUpdate
 }
 
@@ -39,7 +39,7 @@ func (h *ResponseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			if err != nil {
 				h.Errors <- err
 			} else {
-				h.NOtifications.TickerFeed <- msg
+				h.Notifications.TickerFeed <- msg
 			}
 		case "snapshotOrderbook":
 			var msg WSNotificationOrderbookSnapshot
@@ -75,22 +75,23 @@ func (h *ResponseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			}
 		case "snapshotCandles":
 			panic("missing")
-			err := json.Unmarshal(message, &msg)
-			if err != nil {
-				h.Errors <- err
-			} else {
-				//h.OrderbookFeed <- msg
-			}
+			/*
+				err := json.Unmarshal(message, &msg)
+				if err != nil {
+					h.Errors <- err
+				} else {
+					//h.OrderbookFeed <- msg
+				}*/
 		case "updateCandles":
 			panic("missing")
-			var msg WSNotificationOrderbookSnapshot
+			/*var msg WSNotificationOrderbookSnapshot
 			err := json.Unmarshal(message, &msg)
 			if err != nil {
 				h.Errors <- err
 			} else {
 				//h.OrderbookFeed <- msg
-			}
-
+			}*/
+		}
 	}
 }
 
