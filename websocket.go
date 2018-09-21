@@ -18,14 +18,18 @@ type ResponseChannels struct {
 	Notifications NotificationChannels
 
 	OrderbookFeed chan WSNotificationOrderbookSnapshot
+	TradesFeed    chan WSNotificationTradesSnapshot
+	CandlesFeed   chan WSNotificationCandlesSnapshot
 
-	Errors chan error
+	ErrorFeed chan error
 }
 
 // NotificationChannels contains all the notifications from hitbtc for subscribed feeds.
 type NotificationChannels struct {
 	TickerFeed    chan WSNotificationTickerResponse
 	OrderBookFeed chan WSNotificationOrderbookUpdate
+	TradesFeed    chan WSNotificationTradesUpdate
+	CandlesFeed   chan WSNotificationCandlesUpdate
 }
 
 // Handle handles all incoming connections and fills the channels properly.
@@ -37,7 +41,7 @@ func (h *ResponseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			var msg WSNotificationTickerResponse
 			err := json.Unmarshal(message, &msg)
 			if err != nil {
-				h.Errors <- err
+				h.ErrorFeed <- err
 			} else {
 				h.Notifications.TickerFeed <- msg
 			}
@@ -45,7 +49,7 @@ func (h *ResponseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			var msg WSNotificationOrderbookSnapshot
 			err := json.Unmarshal(message, &msg)
 			if err != nil {
-				h.Errors <- err
+				h.ErrorFeed <- err
 			} else {
 				h.OrderbookFeed <- msg
 			}
@@ -53,7 +57,7 @@ func (h *ResponseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			var msg WSNotificationOrderbookUpdate
 			err := json.Unmarshal(message, &msg)
 			if err != nil {
-				h.Errors <- err
+				h.ErrorFeed <- err
 			} else {
 				h.Notifications.OrderBookFeed <- msg
 			}
@@ -61,36 +65,34 @@ func (h *ResponseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			var msg WSNotificationTradesSnapshot
 			err := json.Unmarshal(message, &msg)
 			if err != nil {
-				h.Errors <- err
+				h.ErrorFeed <- err
 			} else {
-				//h.OrderbookFeed <- msg
+				h.TradesFeed <- msg
 			}
 		case "updateTrades":
 			var msg WSNotificationTradesUpdate
 			err := json.Unmarshal(message, &msg)
 			if err != nil {
-				h.Errors <- err
+				h.ErrorFeed <- err
 			} else {
-				//h.OrderbookFeed <- msg
+				h.Notifications.TradesFeed <- msg
 			}
 		case "snapshotCandles":
-			panic("missing")
-			/*
-				err := json.Unmarshal(message, &msg)
-				if err != nil {
-					h.Errors <- err
-				} else {
-					//h.OrderbookFeed <- msg
-				}*/
-		case "updateCandles":
-			panic("missing")
-			/*var msg WSNotificationOrderbookSnapshot
+			var msg WSNotificationCandlesSnapshot
 			err := json.Unmarshal(message, &msg)
 			if err != nil {
-				h.Errors <- err
+				h.ErrorFeed <- err
 			} else {
-				//h.OrderbookFeed <- msg
-			}*/
+				h.CandlesFeed <- msg
+			}
+		case "updateCandles":
+			var msg WSNotificationCandlesUpdate
+			err := json.Unmarshal(message, &msg)
+			if err != nil {
+				h.ErrorFeed <- err
+			} else {
+				h.Notifications.CandlesFeed <- msg
+			}
 		}
 	}
 }
@@ -98,7 +100,7 @@ func (h *ResponseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 // WSClient represents a JSON RPC v2 Connection over Websocket,
 type WSClient struct {
 	conn    *jsonrpc2.Conn
-	handler jsonrpc2.Handler
+	Updates *ResponseChannels
 }
 
 // NewWSClient creates a new WSClient
@@ -108,17 +110,36 @@ func NewWSClient() (*WSClient, error) {
 		return nil, err
 	}
 
-	handler := &ResponseChannels{}
+	handler := &ResponseChannels{
+		Notifications: NotificationChannels{
+			TickerFeed:    make(chan WSNotificationTickerResponse),
+			OrderBookFeed: make(chan WSNotificationOrderbookUpdate),
+			TradesFeed:    make(chan WSNotificationTradesUpdate),
+			CandlesFeed:   make(chan WSNotificationCandlesUpdate),
+		},
+		OrderbookFeed: make(chan WSNotificationOrderbookSnapshot),
+		TradesFeed:    make(chan WSNotificationTradesSnapshot),
+		CandlesFeed:   make(chan WSNotificationCandlesSnapshot),
+		ErrorFeed:     make(chan error),
+	}
 
 	return &WSClient{
 		conn:    jsonrpc2.NewConn(context.Background(), jsonrpc2ws.NewObjectStream(conn), handler),
-		handler: handler,
+		Updates: handler,
 	}, nil
 }
 
 // Close closes the Websocket connected to the hitbtc api.
 func (c *WSClient) Close() {
 	c.conn.Close()
+	close(c.Updates.Notifications.TickerFeed)
+	close(c.Updates.Notifications.OrderBookFeed)
+	close(c.Updates.Notifications.TradesFeed)
+	close(c.Updates.Notifications.CandlesFeed)
+	close(c.Updates.OrderbookFeed)
+	close(c.Updates.TradesFeed)
+	close(c.Updates.CandlesFeed)
+	close(c.Updates.ErrorFeed)
 }
 
 // WSGetCurrencyRequest is get currency request type on websocket
@@ -285,15 +306,15 @@ type WSCandles struct {
 	VolumeQuote string    `json:"volumeQuote,required"` // Total trading amount within 24 hours in quote currency
 }
 
-// WSSubscribeCandlesNotificationSnapshot is subscribe response type to candles on websocket
-type WSSubscribeCandlesNotificationSnapshot struct {
+// WSNotificationCandlesSnapshot is subscribe response type to candles on websocket
+type WSNotificationCandlesSnapshot struct {
 	Data   []WSCandles `json:"data,required"`
 	Symbol string      `json:"symbol,required"`
 	Period string      `json:"period,required"`
 }
 
-// WSSubscribeCandlesNotificationUpdate is subscribe response type to candles on websocket
-type WSSubscribeCandlesNotificationUpdate struct {
+// WSNotificationCandlesUpdate is subscribe response type to candles on websocket
+type WSNotificationCandlesUpdate struct {
 	Data   WSCandles `json:"data,required"`
 	Symbol string    `json:"symbol,required"`
 	Period string    `json:"period,required"`
