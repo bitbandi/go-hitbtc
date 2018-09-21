@@ -1,5 +1,6 @@
 package hitbtc
 
+// Currency represents currency data.
 type Currency struct {
 	Id                 string `json:"id"`
 	FullName           string `json:"fullName"`
