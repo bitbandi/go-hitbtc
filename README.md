@@ -83,3 +83,7 @@ func main() {
 ~~~
 
 See ["Examples" folder for more... examples](https://github.com/bitbandi/go-hitbtc/blob/master/examples/hitbtc.go)
+
+# Projects using this library
+
+- Golang Crypto Trading Bot: a framework to create trading bots easily and seamlessly (https://github.com/saniales/golang-crypto-trading-bot)
