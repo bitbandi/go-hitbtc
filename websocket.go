@@ -346,6 +346,8 @@ func (c *WSClient) UnsubscribeTrades(symbol string) error {
 	}
 
 	close(c.updates.notifications.TradesFeed[symbol])
+	delete(c.updates.notifications.TradesFeed, symbol)
+	close(c.updates.TradesFeed[symbol])
 	delete(c.updates.TradesFeed, symbol)
 
 	return nil
@@ -380,10 +382,14 @@ func (c *WSClient) SubscribeOrderbook(symbol string) (<-chan WSNotificationOrder
 		return nil, nil, errors.Annotate(err, "Hitbtc SubscribeOrderbook")
 	}
 
-	c.updates.notifications.OrderbookFeed = make(chan WSNotificationOrderbookUpdate)
-	c.updates.OrderbookFeed = make(chan WSNotificationOrderbookSnapshot)
+	if c.updates.notifications.OrderbookFeed[symbol] == nil {
+		c.updates.notifications.OrderbookFeed[symbol] = make(chan WSNotificationOrderbookUpdate)
+	}
+	if c.updates.OrderbookFeed[symbol] == nil {
+		c.updates.OrderbookFeed[symbol] = make(chan WSNotificationOrderbookSnapshot)
+	}
 
-	return c.updates.notifications.OrderbookFeed, c.updates.OrderbookFeed, nil
+	return c.updates.notifications.OrderbookFeed[symbol], c.updates.OrderbookFeed[symbol], nil
 }
 
 // UnsubscribeOrderbook unsubscribes from the specified market order book notifications and snapshot.
@@ -395,8 +401,8 @@ func (c *WSClient) UnsubscribeOrderbook(symbol string) error {
 		return errors.Annotate(err, "Hitbtc UnsubscribeOrderbook")
 	}
 
-	close(c.updates.notifications.OrderbookFeed)
-	close(c.updates.OrderbookFeed)
+	close(c.updates.notifications.OrderbookFeed[symbol])
+	close(c.updates.OrderbookFeed[symbol])
 
 	return nil
 }
