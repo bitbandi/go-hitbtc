@@ -17,19 +17,19 @@ const wsAPIURL string = "wss://api.hitbtc.com/api/2/ws"
 type responseChannels struct {
 	notifications notificationChannels
 
-	OrderbookFeed chan WSNotificationOrderbookSnapshot
-	TradesFeed    chan WSNotificationTradesSnapshot
-	CandlesFeed   chan WSNotificationCandlesSnapshot
+	OrderbookFeed map[string]chan WSNotificationOrderbookSnapshot
+	TradesFeed    map[string]chan WSNotificationTradesSnapshot
+	CandlesFeed   map[string]chan WSNotificationCandlesSnapshot
 
 	ErrorFeed chan error
 }
 
 // notificationChannels contains all the notifications from hitbtc for subscribed feeds.
 type notificationChannels struct {
-	TickerFeed    chan WSNotificationTickerResponse
-	OrderbookFeed chan WSNotificationOrderbookUpdate
-	TradesFeed    chan WSNotificationTradesUpdate
-	CandlesFeed   chan WSNotificationCandlesUpdate
+	TickerFeed    map[string]chan WSNotificationTickerResponse
+	OrderbookFeed map[string]chan WSNotificationOrderbookUpdate
+	TradesFeed    map[string]chan WSNotificationTradesUpdate
+	CandlesFeed   map[string]chan WSNotificationCandlesUpdate
 }
 
 // Handle handles all incoming connections and fills the channels properly.
@@ -43,7 +43,7 @@ func (h *responseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			if err != nil {
 				h.ErrorFeed <- err
 			} else {
-				h.notifications.TickerFeed <- msg
+				h.notifications.TickerFeed[msg.Symbol] <- msg
 			}
 		case "snapshotOrderbook":
 			var msg WSNotificationOrderbookSnapshot
@@ -51,7 +51,7 @@ func (h *responseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			if err != nil {
 				h.ErrorFeed <- err
 			} else {
-				h.OrderbookFeed <- msg
+				h.OrderbookFeed[msg.Symbol] <- msg
 			}
 		case "updateOrderbook":
 			var msg WSNotificationOrderbookUpdate
@@ -59,7 +59,7 @@ func (h *responseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			if err != nil {
 				h.ErrorFeed <- err
 			} else {
-				h.notifications.OrderbookFeed <- msg
+				h.notifications.OrderbookFeed[msg.Symbol] <- msg
 			}
 		case "snapshotTrades":
 			var msg WSNotificationTradesSnapshot
@@ -67,7 +67,7 @@ func (h *responseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			if err != nil {
 				h.ErrorFeed <- err
 			} else {
-				h.TradesFeed <- msg
+				h.TradesFeed[msg.Data[0].] <- msg
 			}
 		case "updateTrades":
 			var msg WSNotificationTradesUpdate
@@ -251,7 +251,9 @@ func (c *WSClient) SubscribeTicker(symbol string) (<-chan WSNotificationTickerRe
 		return nil, errors.Annotate(err, "Hitbtc SubscribeTicker")
 	}
 
-	c.updates.notifications.TickerFeed = make(chan WSNotificationTickerResponse)
+	if c.updates.notifications.TickerFeed == nil {
+		c.updates.notifications.TickerFeed = make(chan WSNotificationTickerResponse)
+	}
 
 	return c.updates.notifications.TickerFeed, nil
 }
@@ -273,11 +275,13 @@ func (c *WSClient) UnsubscribeTicker(symbol string) error {
 // WSNotificationTradesSnapshot is notification response type to trades on websocket
 type WSNotificationTradesSnapshot struct {
 	Data []WSTrades `json:"data,required"`
+	Symbol string `json:"symbol,required"`
 }
 
 // WSNotificationTradesUpdate is notification response type to trades on websocket
 type WSNotificationTradesUpdate struct {
 	Data WSTrades `json:"data,required"`
+	Symbol string `json:"symbol,required"`
 }
 
 // WSTrades is item for Trades
