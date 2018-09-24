@@ -13,9 +13,9 @@ import (
 
 const wsAPIURL string = "wss://api.hitbtc.com/api/2/ws"
 
-// ResponseChannels handles all incoming data from the hitbtc connection.
-type ResponseChannels struct {
-	Notifications NotificationChannels
+// responseChannels handles all incoming data from the hitbtc connection.
+type responseChannels struct {
+	notifications notificationChannels
 
 	OrderbookFeed chan WSNotificationOrderbookSnapshot
 	TradesFeed    chan WSNotificationTradesSnapshot
@@ -24,16 +24,16 @@ type ResponseChannels struct {
 	ErrorFeed chan error
 }
 
-// NotificationChannels contains all the notifications from hitbtc for subscribed feeds.
-type NotificationChannels struct {
+// notificationChannels contains all the notifications from hitbtc for subscribed feeds.
+type notificationChannels struct {
 	TickerFeed    chan WSNotificationTickerResponse
-	OrderBookFeed chan WSNotificationOrderbookUpdate
+	OrderbookFeed chan WSNotificationOrderbookUpdate
 	TradesFeed    chan WSNotificationTradesUpdate
 	CandlesFeed   chan WSNotificationCandlesUpdate
 }
 
 // Handle handles all incoming connections and fills the channels properly.
-func (h *ResponseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) {
+func (h *responseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) {
 	if req.Params != nil {
 		message := *req.Params
 		switch req.Method {
@@ -43,7 +43,7 @@ func (h *ResponseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			if err != nil {
 				h.ErrorFeed <- err
 			} else {
-				h.Notifications.TickerFeed <- msg
+				h.notifications.TickerFeed <- msg
 			}
 		case "snapshotOrderbook":
 			var msg WSNotificationOrderbookSnapshot
@@ -59,7 +59,7 @@ func (h *ResponseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			if err != nil {
 				h.ErrorFeed <- err
 			} else {
-				h.Notifications.OrderBookFeed <- msg
+				h.notifications.OrderbookFeed <- msg
 			}
 		case "snapshotTrades":
 			var msg WSNotificationTradesSnapshot
@@ -75,7 +75,7 @@ func (h *ResponseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			if err != nil {
 				h.ErrorFeed <- err
 			} else {
-				h.Notifications.TradesFeed <- msg
+				h.notifications.TradesFeed <- msg
 			}
 		case "snapshotCandles":
 			var msg WSNotificationCandlesSnapshot
@@ -91,7 +91,7 @@ func (h *ResponseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			if err != nil {
 				h.ErrorFeed <- err
 			} else {
-				h.Notifications.CandlesFeed <- msg
+				h.notifications.CandlesFeed <- msg
 			}
 		}
 	}
@@ -100,7 +100,7 @@ func (h *ResponseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 // WSClient represents a JSON RPC v2 Connection over Websocket,
 type WSClient struct {
 	conn    *jsonrpc2.Conn
-	Updates *ResponseChannels
+	updates *responseChannels
 }
 
 // NewWSClient creates a new WSClient
@@ -110,36 +110,25 @@ func NewWSClient() (*WSClient, error) {
 		return nil, err
 	}
 
-	handler := &ResponseChannels{
-		Notifications: NotificationChannels{
-			TickerFeed:    make(chan WSNotificationTickerResponse),
-			OrderBookFeed: make(chan WSNotificationOrderbookUpdate),
-			TradesFeed:    make(chan WSNotificationTradesUpdate),
-			CandlesFeed:   make(chan WSNotificationCandlesUpdate),
-		},
-		OrderbookFeed: make(chan WSNotificationOrderbookSnapshot),
-		TradesFeed:    make(chan WSNotificationTradesSnapshot),
-		CandlesFeed:   make(chan WSNotificationCandlesSnapshot),
-		ErrorFeed:     make(chan error),
-	}
+	var handler responseChannels
 
 	return &WSClient{
-		conn:    jsonrpc2.NewConn(context.Background(), jsonrpc2ws.NewObjectStream(conn), handler),
-		Updates: handler,
+		conn:    jsonrpc2.NewConn(context.Background(), jsonrpc2ws.NewObjectStream(conn), &handler),
+		updates: &handler,
 	}, nil
 }
 
 // Close closes the Websocket connected to the hitbtc api.
 func (c *WSClient) Close() {
 	c.conn.Close()
-	close(c.Updates.Notifications.TickerFeed)
-	close(c.Updates.Notifications.OrderBookFeed)
-	close(c.Updates.Notifications.TradesFeed)
-	close(c.Updates.Notifications.CandlesFeed)
-	close(c.Updates.OrderbookFeed)
-	close(c.Updates.TradesFeed)
-	close(c.Updates.CandlesFeed)
-	close(c.Updates.ErrorFeed)
+	close(c.updates.notifications.TickerFeed)
+	close(c.updates.notifications.OrderbookFeed)
+	close(c.updates.notifications.TradesFeed)
+	close(c.updates.notifications.CandlesFeed)
+	close(c.updates.OrderbookFeed)
+	close(c.updates.TradesFeed)
+	close(c.updates.CandlesFeed)
+	close(c.updates.ErrorFeed)
 }
 
 // WSGetCurrencyRequest is get currency request type on websocket
@@ -203,8 +192,41 @@ func (c *WSClient) GetSymbol(symbol string) (*WSGetSymbolResponse, error) {
 	return &response, nil
 }
 
-// WSSubscribeTickerRequest is get symbols request type on websocket
-type WSSubscribeTickerRequest struct {
+// WSGetTradesRequest is get trades request type on websocket
+type WSGetTradesRequest struct {
+	Symbol string     `json:"symbol,required"`
+	Limit  int        `json:"limit,required"`
+	Sort   string     `json:"sort,required"`
+	By     string     `json:"by,required"`
+	From   *time.Time `json:"from,omitempty"`
+	Till   *time.Time `json:"till,omitempty"`
+	Offset *string    `json:"offset,omitempty"`
+}
+
+// WSGetTradesResponse  is get symbols response type on websocket
+type WSGetTradesResponse struct {
+	Data []WSTrades `json:"data,required"`
+}
+
+// GetTrades obtains the data of a series of trades, based on the specified filters.
+func (c *WSClient) GetTrades(symbol string) (*WSGetTradesResponse, error) {
+	var request = WSGetTradesRequest{Symbol: symbol}
+	var response WSGetTradesResponse
+
+	err := c.conn.Call(context.Background(), "getSymbol", request, &response)
+	if err != nil {
+		return nil, errors.Annotate(err, "Hitbtc GetSymbol")
+	}
+	return &response, nil
+}
+
+// wsSubscriptionResponse is the response for a subscribe/unsubscribe requests.
+type wsSubscriptionResponse struct {
+	Result bool `json:"result,required"`
+}
+
+// WSSubscriptionRequest is request type on websocket subscription.
+type WSSubscriptionRequest struct {
 	Symbol string `json:"symbol,required"`
 }
 
@@ -222,9 +244,77 @@ type WSNotificationTickerResponse struct {
 	Symbol      string `json:"symbol,required"`
 }
 
-// WSSubscribeOrderbookRequest is subscribe request type to orderbook on websocket
-type WSSubscribeOrderbookRequest struct {
-	Symbol string `json:"symbol,required"`
+// SubscribeTicker subscribes to the specified market ticker notifications.
+func (c *WSClient) SubscribeTicker(symbol string) (<-chan WSNotificationTickerResponse, error) {
+	err := c.subscriptionOp("subscribeTicker", symbol)
+	if err != nil {
+		return nil, errors.Annotate(err, "Hitbtc SubscribeTicker")
+	}
+
+	c.updates.notifications.TickerFeed = make(chan WSNotificationTickerResponse)
+
+	return c.updates.notifications.TickerFeed, nil
+}
+
+// UnsubscribeTicker subscribes to the specified market ticker notifications.
+//
+// This closes also the connected channel of updates.
+func (c *WSClient) UnsubscribeTicker(symbol string) error {
+	err := c.subscriptionOp("unsubscribeTicker", symbol)
+	if err != nil {
+		return errors.Annotate(err, "Hitbtc UnsubscribeTicker")
+	}
+
+	close(c.updates.notifications.TickerFeed)
+
+	return nil
+}
+
+// WSNotificationTradesSnapshot is notification response type to trades on websocket
+type WSNotificationTradesSnapshot struct {
+	Data []WSTrades `json:"data,required"`
+}
+
+// WSNotificationTradesUpdate is notification response type to trades on websocket
+type WSNotificationTradesUpdate struct {
+	Data WSTrades `json:"data,required"`
+}
+
+// WSTrades is item for Trades
+type WSTrades struct {
+	ID        int    `json:"id,required"`
+	Price     string `json:"price,required"`
+	Quantity  string `json:"quantity"`
+	Side      string `json:"side,required"`
+	Timestamp string `json:"timestamp,required"`
+}
+
+// SubscribeTrades subscribes to the specified market trades notifications.
+func (c *WSClient) SubscribeTrades(symbol string) (<-chan WSNotificationTradesUpdate, <-chan WSNotificationTradesSnapshot, error) {
+	err := c.subscriptionOp("subscribeTrades", symbol)
+	if err != nil {
+		return nil, nil, errors.Annotate(err, "Hitbtc SubscribeTrades")
+	}
+
+	c.updates.notifications.TradesFeed = make(chan WSNotificationTradesUpdate)
+	c.updates.TradesFeed = make(chan WSNotificationTradesSnapshot)
+
+	return c.updates.notifications.TradesFeed, c.updates.TradesFeed, nil
+}
+
+// UnsubscribeTrades unsubscribes from the specified market trades notifications and snapshot.
+//
+// This closes also the connected channel of updates.
+func (c *WSClient) UnsubscribeTrades(symbol string) error {
+	err := c.subscriptionOp("unsubscribeTrades", symbol)
+	if err != nil {
+		return errors.Annotate(err, "Hitbtc UnsubscribeTrades")
+	}
+
+	close(c.updates.notifications.TradesFeed)
+	close(c.updates.TradesFeed)
+
+	return nil
 }
 
 // WSSubtypeTrade is element of market trade type
@@ -249,61 +339,45 @@ type WSNotificationOrderbookUpdate struct {
 	Sequence int64            `json:"sequence,required"` // used to see if the snapshot is the latest
 }
 
-// WSSubscribeTradesRequest is subscribe request type to trades on websocket
-type WSSubscribeTradesRequest struct {
-	Symbol string `json:"symbol,required"`
+// SubscribeOrderbook subscribes to the specified market order book notifications.
+func (c *WSClient) SubscribeOrderbook(symbol string) (<-chan WSNotificationOrderbookUpdate, <-chan WSNotificationOrderbookSnapshot, error) {
+	err := c.subscriptionOp("subscribeOrderbook", symbol)
+	if err != nil {
+		return nil, nil, errors.Annotate(err, "Hitbtc SubscribeOrderbook")
+	}
+
+	c.updates.notifications.OrderbookFeed = make(chan WSNotificationOrderbookUpdate)
+	c.updates.OrderbookFeed = make(chan WSNotificationOrderbookSnapshot)
+
+	return c.updates.notifications.OrderbookFeed, c.updates.OrderbookFeed, nil
 }
 
-// WSTrades is item for Trades
-type WSTrades struct {
-	ID        int    `json:"id,required"`
-	Price     string `json:"price,required"`
-	Quantity  string `json:"quantity"`
-	Side      string `json:"side,required"`
-	Timestamp string `json:"timestamp,required"`
+// UnsubscribeOrderbook unsubscribes from the specified market order book notifications and snapshot.
+//
+// This closes also the connected channel of updates.
+func (c *WSClient) UnsubscribeOrderbook(symbol string) error {
+	err := c.subscriptionOp("unsubscribeOrderbook", symbol)
+	if err != nil {
+		return errors.Annotate(err, "Hitbtc UnsubscribeOrderbook")
+	}
+
+	close(c.updates.notifications.OrderbookFeed)
+	close(c.updates.OrderbookFeed)
+
+	return nil
 }
 
-// WSNotificationTradesSnapshot is notification response type to trades on websocket
-type WSNotificationTradesSnapshot struct {
-	Data []WSTrades `json:"data,required"`
-}
+const (
+	// Interval30Minutes is 30 minutes interval for candle data.
+	Interval30Minutes string = "M30"
+	// Interval1Hour is 1 hour interval for candle data.
+	Interval1Hour string = "H1"
+)
 
-// WSNotificationTradesUpdate is notification response type to trades on websocket
-type WSNotificationTradesUpdate struct {
-	Data WSTrades `json:"data,required"`
-}
-
-// WSGetTradesRequest is get trades request type on websocket
-type WSGetTradesRequest struct {
-	Symbol string    `json:"symbol,required"`
-	Limit  int       `json:"limit,required"`
-	Sort   string    `json:"sort,required"`
-	By     string    `json:"by,required"`
-	From   time.Time `json:"from"`
-	Till   time.Time `json:"till"`
-	Offset string    `json:"offset"`
-}
-
-// WSGetTradesResponse  is get symbols response type on websocket
-type WSGetTradesResponse struct {
-	Data []WSTrades `json:"data,required"`
-}
-
-// WSSubscribeCandlesRequest is subscribe request type to candles on websocket
-type WSSubscribeCandlesRequest struct {
+// WSCandlesSubscriptionRequest is a request to subscribe for candle data.
+type WSCandlesSubscriptionRequest struct {
 	Symbol string `json:"symbol,required"`
 	Period string `json:"period,required"`
-}
-
-// WSCandles is item for WSCandles
-type WSCandles struct {
-	Timestamp   time.Time `json:"timestamp,required"`
-	Open        string    `json:"open,required"`
-	Close       string    `json:"close,required"`
-	Min         string    `json:"min,required"`
-	Max         string    `json:"max,required"`
-	Volume      string    `json:"volume,required"`      // Total trading amount within 24 hours in base currency
-	VolumeQuote string    `json:"volumeQuote,required"` // Total trading amount within 24 hours in quote currency
 }
 
 // WSNotificationCandlesSnapshot is subscribe response type to candles on websocket
@@ -318,4 +392,67 @@ type WSNotificationCandlesUpdate struct {
 	Data   WSCandles `json:"data,required"`
 	Symbol string    `json:"symbol,required"`
 	Period string    `json:"period,required"`
+}
+
+// WSCandles is item for WSCandles
+type WSCandles struct {
+	Timestamp   time.Time `json:"timestamp,required"`
+	Open        string    `json:"open,required"`
+	Close       string    `json:"close,required"`
+	Min         string    `json:"min,required"`
+	Max         string    `json:"max,required"`
+	Volume      string    `json:"volume,required"`      // Total trading amount within 24 hours in base currency
+	VolumeQuote string    `json:"volumeQuote,required"` // Total trading amount within 24 hours in quote currency
+}
+
+// SubscribeCandles subscribes to the specified market candle notifications for the specified timeframe.
+func (c *WSClient) SubscribeCandles(symbol string, timeframe string) (<-chan WSNotificationCandlesUpdate, <-chan WSNotificationCandlesSnapshot, error) {
+	err := c.candlesSubscriptionOp("subscribeCandles", symbol, timeframe)
+	if err != nil {
+		return nil, nil, errors.Annotate(err, "Hitbtc SubscribeCandles")
+	}
+
+	c.updates.notifications.CandlesFeed = make(chan WSNotificationCandlesUpdate)
+	c.updates.CandlesFeed = make(chan WSNotificationCandlesSnapshot)
+
+	return c.updates.notifications.CandlesFeed, c.updates.CandlesFeed, nil
+}
+
+// UnsubscribeCandles unsubscribes from the specified market candle notifications for the specified timeframe.
+//
+// This closes also the connected channel of updates.
+func (c *WSClient) UnsubscribeCandles(symbol string, timeframe string) error {
+	err := c.candlesSubscriptionOp("unsubscribeCandles", symbol, timeframe)
+	if err != nil {
+		return errors.Annotate(err, "Hitbtc UnsubscribeCandles")
+	}
+
+	close(c.updates.notifications.CandlesFeed)
+	close(c.updates.CandlesFeed)
+
+	return nil
+}
+
+func (c *WSClient) subscriptionOp(op string, symbol string) error {
+	var request = WSSubscriptionRequest{Symbol: symbol}
+	var response wsSubscriptionResponse
+
+	err := c.conn.Call(context.Background(), op, request, &response)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *WSClient) candlesSubscriptionOp(op string, symbol string, period string) error {
+	var request = WSCandlesSubscriptionRequest{Symbol: symbol, Period: period}
+	var response wsSubscriptionResponse
+
+	err := c.conn.Call(context.Background(), op, request, &response)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

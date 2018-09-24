@@ -63,6 +63,22 @@ func main() {
 	// Get balances
 	balances, err := hitbtc.GetBalances()
 	fmt.Println(err, balances)
+
+	// Initialize websocket connection
+	client, err := hitbtc.NewWSClient()
+	if err != nil {
+		handleError(err) // do something
+	}
+	defer client.Close()
+
+	// Subscribe and handle
+	tickerFeed, err := client.SubscribeTicker("ETHBTC")
+	for {
+		ticker := <-tickerFeed
+		fmt.Println(ticker)
+	}
+
+
 }
 ~~~
 
