@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// OrderBook definition
-type OrderBook struct {
+// Orderbook represents an orderbook from hitbtc api.
+type Orderbook struct {
 	Ask       []OrederBookItem `json:"ask,struct"`
 	Bid       []OrederBookItem `json:"bid,struct"`
 	Timestamp time.Time        `json:"timestamp"`
@@ -19,9 +19,9 @@ type OrederBookItem struct {
 }
 
 // UnmarshalJSON for OrderBook function
-func (t *OrderBook) UnmarshalJSON(data []byte) error {
+func (t *Orderbook) UnmarshalJSON(data []byte) error {
 	var err error
-	type Alias OrderBook
+	type Alias Orderbook
 	aux := &struct {
 		Timestamp string `json:"timestamp"`
 		*Alias

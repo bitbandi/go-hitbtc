@@ -117,8 +117,8 @@ func (b *HitBtc) GetTicker(market string) (ticker Ticker, err error) {
 	return
 }
 
-// GetOrderBook is used to get the current order book for a market.
-func (b *HitBtc) GetOrderBook(market string) (orderbook OrderBook, err error) {
+// GetOrderbook is used to get the current order book for a market.
+func (b *HitBtc) GetOrderbook(market string) (orderbook Orderbook, err error) {
 	r, err := b.client.do("GET", "public/orderbook/"+strings.ToUpper(market), nil, false)
 	if err != nil {
 		return
