@@ -67,7 +67,7 @@ func (h *responseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			if err != nil {
 				h.ErrorFeed <- err
 			} else {
-				h.TradesFeed[msg.Data[0].] <- msg
+				h.TradesFeed[msg.Symbol] <- msg
 			}
 		case "updateTrades":
 			var msg WSNotificationTradesUpdate
@@ -75,7 +75,7 @@ func (h *responseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			if err != nil {
 				h.ErrorFeed <- err
 			} else {
-				h.notifications.TradesFeed <- msg
+				h.notifications.TradesFeed[msg.Symbol] <- msg
 			}
 		case "snapshotCandles":
 			var msg WSNotificationCandlesSnapshot
@@ -83,7 +83,7 @@ func (h *responseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			if err != nil {
 				h.ErrorFeed <- err
 			} else {
-				h.CandlesFeed <- msg
+				h.CandlesFeed[msg.Symbol] <- msg
 			}
 		case "updateCandles":
 			var msg WSNotificationCandlesUpdate
@@ -91,7 +91,7 @@ func (h *responseChannels) Handle(ctx context.Context, conn *jsonrpc2.Conn, req 
 			if err != nil {
 				h.ErrorFeed <- err
 			} else {
-				h.notifications.CandlesFeed <- msg
+				h.notifications.CandlesFeed[msg.Symbol] <- msg
 			}
 		}
 	}
@@ -121,14 +121,39 @@ func NewWSClient() (*WSClient, error) {
 // Close closes the Websocket connected to the hitbtc api.
 func (c *WSClient) Close() {
 	c.conn.Close()
-	close(c.updates.notifications.TickerFeed)
-	close(c.updates.notifications.OrderbookFeed)
-	close(c.updates.notifications.TradesFeed)
-	close(c.updates.notifications.CandlesFeed)
-	close(c.updates.OrderbookFeed)
-	close(c.updates.TradesFeed)
-	close(c.updates.CandlesFeed)
+
+	for _, channel := range c.updates.notifications.TickerFeed {
+		close(channel)
+	}
+	for _, channel := range c.updates.notifications.TradesFeed {
+		close(channel)
+	}
+	for _, channel := range c.updates.notifications.CandlesFeed {
+		close(channel)
+	}
+	for _, channel := range c.updates.notifications.OrderbookFeed {
+		close(channel)
+	}
+	for _, channel := range c.updates.OrderbookFeed {
+		close(channel)
+	}
+	for _, channel := range c.updates.TradesFeed {
+		close(channel)
+	}
+	for _, channel := range c.updates.CandlesFeed {
+		close(channel)
+	}
+
 	close(c.updates.ErrorFeed)
+
+	c.updates.notifications.TickerFeed = make(map[string]chan WSNotificationTickerResponse)
+	c.updates.notifications.TradesFeed = make(map[string]chan WSNotificationTradesUpdate)
+	c.updates.notifications.OrderbookFeed = make(map[string]chan WSNotificationOrderbookUpdate)
+	c.updates.notifications.CandlesFeed = make(map[string]chan WSNotificationCandlesUpdate)
+	c.updates.CandlesFeed = make(map[string]chan WSNotificationCandlesSnapshot)
+	c.updates.TradesFeed = make(map[string]chan WSNotificationTradesSnapshot)
+	c.updates.OrderbookFeed = make(map[string]chan WSNotificationOrderbookSnapshot)
+	c.updates.ErrorFeed = make(chan error)
 }
 
 // WSGetCurrencyRequest is get currency request type on websocket
@@ -251,11 +276,11 @@ func (c *WSClient) SubscribeTicker(symbol string) (<-chan WSNotificationTickerRe
 		return nil, errors.Annotate(err, "Hitbtc SubscribeTicker")
 	}
 
-	if c.updates.notifications.TickerFeed == nil {
-		c.updates.notifications.TickerFeed = make(chan WSNotificationTickerResponse)
+	if c.updates.notifications.TickerFeed[symbol] == nil {
+		c.updates.notifications.TickerFeed[symbol] = make(chan WSNotificationTickerResponse)
 	}
 
-	return c.updates.notifications.TickerFeed, nil
+	return c.updates.notifications.TickerFeed[symbol], nil
 }
 
 // UnsubscribeTicker subscribes to the specified market ticker notifications.
@@ -267,21 +292,22 @@ func (c *WSClient) UnsubscribeTicker(symbol string) error {
 		return errors.Annotate(err, "Hitbtc UnsubscribeTicker")
 	}
 
-	close(c.updates.notifications.TickerFeed)
+	close(c.updates.notifications.TickerFeed[symbol])
+	delete(c.updates.notifications.TickerFeed, symbol)
 
 	return nil
 }
 
 // WSNotificationTradesSnapshot is notification response type to trades on websocket
 type WSNotificationTradesSnapshot struct {
-	Data []WSTrades `json:"data,required"`
-	Symbol string `json:"symbol,required"`
+	Data   []WSTrades `json:"data,required"`
+	Symbol string     `json:"symbol,required"`
 }
 
 // WSNotificationTradesUpdate is notification response type to trades on websocket
 type WSNotificationTradesUpdate struct {
-	Data WSTrades `json:"data,required"`
-	Symbol string `json:"symbol,required"`
+	Data   WSTrades `json:"data,required"`
+	Symbol string   `json:"symbol,required"`
 }
 
 // WSTrades is item for Trades
@@ -300,10 +326,14 @@ func (c *WSClient) SubscribeTrades(symbol string) (<-chan WSNotificationTradesUp
 		return nil, nil, errors.Annotate(err, "Hitbtc SubscribeTrades")
 	}
 
-	c.updates.notifications.TradesFeed = make(chan WSNotificationTradesUpdate)
-	c.updates.TradesFeed = make(chan WSNotificationTradesSnapshot)
+	if c.updates.notifications.TradesFeed[symbol] == nil {
+		c.updates.notifications.TradesFeed[symbol] = make(chan WSNotificationTradesUpdate)
+	}
+	if c.updates.TradesFeed[symbol] == nil {
+		c.updates.TradesFeed[symbol] = make(chan WSNotificationTradesSnapshot)
+	}
 
-	return c.updates.notifications.TradesFeed, c.updates.TradesFeed, nil
+	return c.updates.notifications.TradesFeed[symbol], c.updates.TradesFeed[symbol], nil
 }
 
 // UnsubscribeTrades unsubscribes from the specified market trades notifications and snapshot.
@@ -315,8 +345,8 @@ func (c *WSClient) UnsubscribeTrades(symbol string) error {
 		return errors.Annotate(err, "Hitbtc UnsubscribeTrades")
 	}
 
-	close(c.updates.notifications.TradesFeed)
-	close(c.updates.TradesFeed)
+	close(c.updates.notifications.TradesFeed[symbol])
+	delete(c.updates.TradesFeed, symbol)
 
 	return nil
 }
