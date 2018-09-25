@@ -402,7 +402,9 @@ func (c *WSClient) UnsubscribeOrderbook(symbol string) error {
 	}
 
 	close(c.updates.notifications.OrderbookFeed[symbol])
+	delete(c.updates.notifications.OrderbookFeed, symbol)
 	close(c.updates.OrderbookFeed[symbol])
+	delete(c.updates.OrderbookFeed, symbol)
 
 	return nil
 }
@@ -452,10 +454,15 @@ func (c *WSClient) SubscribeCandles(symbol string, timeframe string) (<-chan WSN
 		return nil, nil, errors.Annotate(err, "Hitbtc SubscribeCandles")
 	}
 
-	c.updates.notifications.CandlesFeed = make(chan WSNotificationCandlesUpdate)
-	c.updates.CandlesFeed = make(chan WSNotificationCandlesSnapshot)
+	if c.updates.notifications.CandlesFeed[symbol] == nil {
+		c.updates.notifications.CandlesFeed[symbol] = make(chan WSNotificationCandlesUpdate)
+	}
 
-	return c.updates.notifications.CandlesFeed, c.updates.CandlesFeed, nil
+	if c.updates.CandlesFeed[symbol] == nil {
+		c.updates.CandlesFeed[symbol] = make(chan WSNotificationCandlesSnapshot)
+	}
+
+	return c.updates.notifications.CandlesFeed[symbol], c.updates.CandlesFeed[symbol], nil
 }
 
 // UnsubscribeCandles unsubscribes from the specified market candle notifications for the specified timeframe.
@@ -467,8 +474,10 @@ func (c *WSClient) UnsubscribeCandles(symbol string, timeframe string) error {
 		return errors.Annotate(err, "Hitbtc UnsubscribeCandles")
 	}
 
-	close(c.updates.notifications.CandlesFeed)
-	close(c.updates.CandlesFeed)
+	close(c.updates.notifications.CandlesFeed[symbol])
+	delete(c.updates.notifications.CandlesFeed, symbol)
+	close(c.updates.CandlesFeed[symbol])
+	delete(c.updates.CandlesFeed, symbol)
 
 	return nil
 }
