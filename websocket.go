@@ -110,10 +110,23 @@ func NewWSClient() (*WSClient, error) {
 		return nil, err
 	}
 
-	var handler responseChannels
+	handler := responseChannels{
+		notifications: notificationChannels{
+			TickerFeed:    make(map[string]chan WSNotificationTickerResponse),
+			OrderbookFeed: make(map[string]chan WSNotificationOrderbookUpdate),
+			TradesFeed:    make(map[string]chan WSNotificationTradesUpdate),
+			CandlesFeed:   make(map[string]chan WSNotificationCandlesUpdate),
+		},
+
+		OrderbookFeed: make(map[string]chan WSNotificationOrderbookSnapshot),
+		TradesFeed:    make(map[string]chan WSNotificationTradesSnapshot),
+		CandlesFeed:   make(map[string]chan WSNotificationCandlesSnapshot),
+
+		ErrorFeed: make(chan error),
+	}
 
 	return &WSClient{
-		conn:    jsonrpc2.NewConn(context.Background(), jsonrpc2ws.NewObjectStream(conn), &handler),
+		conn:    jsonrpc2.NewConn(context.Background(), jsonrpc2ws.NewObjectStream(conn), jsonrpc2.AsyncHandler(&handler)),
 		updates: &handler,
 	}, nil
 }
@@ -246,9 +259,7 @@ func (c *WSClient) GetTrades(symbol string) (*WSGetTradesResponse, error) {
 }
 
 // wsSubscriptionResponse is the response for a subscribe/unsubscribe requests.
-type wsSubscriptionResponse struct {
-	Result bool `json:"result,required"`
-}
+type wsSubscriptionResponse bool
 
 // WSSubscriptionRequest is request type on websocket subscription.
 type WSSubscriptionRequest struct {
@@ -484,11 +495,15 @@ func (c *WSClient) UnsubscribeCandles(symbol string, timeframe string) error {
 
 func (c *WSClient) subscriptionOp(op string, symbol string) error {
 	var request = WSSubscriptionRequest{Symbol: symbol}
-	var response wsSubscriptionResponse
+	var success wsSubscriptionResponse
 
-	err := c.conn.Call(context.Background(), op, request, &response)
+	err := c.conn.Call(context.Background(), op, request, &success)
 	if err != nil {
 		return err
+	}
+
+	if !success {
+		return errors.New("Subscribe not successful")
 	}
 
 	return nil
