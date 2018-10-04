@@ -145,13 +145,11 @@ func (c *client) do(method string, ressource string, payload map[string]string, 
 
 	defer resp.Body.Close()
 	response, err = ioutil.ReadAll(resp.Body)
-	//fmt.Println(fmt.Sprintf("reponse %s", response), err)
 	if err != nil {
 		return response, err
 	}
 	if resp.StatusCode != 200 && resp.StatusCode != 401 {
-	//if resp.StatusCode != 200 {
-		err = errors.New(resp.Status)
+		return response, errors.New(resp.Status)
 	}
 	return response, err
 }

@@ -2,18 +2,16 @@ package hitbtc
 
 import (
 	"encoding/json"
-	"time"
 )
 
 // Orderbook represents an orderbook from hitbtc api.
 type Orderbook struct {
-	Ask       []OrederBookItem `json:"ask,struct"`
-	Bid       []OrederBookItem `json:"bid,struct"`
-	Timestamp time.Time        `json:"timestamp"`
+	Ask []OrderBookItem `json:"ask,struct"`
+	Bid []OrderBookItem `json:"bid,struct"`
 }
 
-// OrederBookItem for Ask and Bid field
-type OrederBookItem struct {
+// OrderBookItem for Ask and Bid field.
+type OrderBookItem struct {
 	Price float64 `json:"price,string"`
 	Size  float64 `json:"size,string"`
 }
@@ -29,10 +27,6 @@ func (t *Orderbook) UnmarshalJSON(data []byte) error {
 		Alias: (*Alias)(t),
 	}
 	if err = json.Unmarshal(data, &aux); err != nil {
-		return err
-	}
-	t.Timestamp, err = time.Parse("2006-01-02T15:04:05.999Z", aux.Timestamp)
-	if err != nil {
 		return err
 	}
 	return nil
