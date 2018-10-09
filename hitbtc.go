@@ -134,7 +134,7 @@ func (b *HitBtc) GetOrderbook(market string) (orderbook Orderbook, err error) {
 	return
 }
 
-// GetTicker is used to get the current ticker values for all markets.
+// GetAllTicker is used to get the current ticker values for all markets.
 func (b *HitBtc) GetAllTicker() (tickers []Ticker, err error) {
 	r, err := b.client.do("GET", "public/ticker", nil, false)
 	if err != nil {
@@ -150,10 +150,6 @@ func (b *HitBtc) GetAllTicker() (tickers []Ticker, err error) {
 	err = json.Unmarshal(r, &tickers)
 	return
 }
-
-// Market
-
-// Account
 
 // GetBalances is used to retrieve all balances from your account
 func (b *HitBtc) GetBalances() (balances []Balance, err error) {
