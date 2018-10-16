@@ -494,6 +494,10 @@ func (c *WSClient) UnsubscribeCandles(symbol string, timeframe string) error {
 }
 
 func (c *WSClient) subscriptionOp(op string, symbol string) error {
+	if c.conn == nil {
+		return errors.New("Connection is unitialized")
+	}
+
 	var request = WSSubscriptionRequest{Symbol: symbol}
 	var success wsSubscriptionResponse
 
