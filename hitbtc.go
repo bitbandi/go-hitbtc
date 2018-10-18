@@ -351,3 +351,35 @@ func (b *HitBtc) GetTransactions(start uint64, end uint64, limit uint32) (transa
 	err = json.Unmarshal(r, &transactions)
 	return
 }
+
+// Withdraw performs a withdrawal operation.
+func (b *HitBtc) Withdraw(address string, currency string, amount float64) (withdrawID string, err error) {
+	type withdrawResponse struct {
+		ID string `json:"id,required"`
+	}
+
+	payload := map[string]string{
+		"currency": currency,
+		"address":  address,
+		"amount":   fmt.Sprint(amount),
+	}
+
+	r, err := b.client.do("POST", "account/crypto/withdraw", payload, true)
+	if err != nil {
+		return
+	}
+	var response interface{}
+	if err = json.Unmarshal(r, &response); err != nil {
+		return
+	}
+	if err = handleErr(response); err != nil {
+		return
+	}
+
+	var withdraw withdrawResponse
+	if err = json.Unmarshal(r, &withdraw); err != nil {
+		return
+	}
+	withdrawID = withdraw.ID
+	return
+}
