@@ -19,14 +19,25 @@ type Ticker struct {
 	Symbol      string    `json:"symbol"`
 }
 
+// Tickers rapresents a set of a valid Tickers struct
+type Tickers []Ticker
+
 func (t *Ticker) UnmarshalJSON(data []byte) error {
 	var err error
 	type Alias Ticker
 	aux := &struct {
 		Timestamp string `json:"timestamp"`
+		High      string `json:"high"`
+		Low       string `json:"low"`
 		*Alias
 	}{
 		Alias: (*Alias)(t),
+	}
+	if aux.High == "" {
+		aux.High = "0"
+	}
+	if aux.Low == "" {
+		aux.Low = "0"
 	}
 	if err = json.Unmarshal(data, &aux); err != nil {
 		return err
@@ -35,5 +46,28 @@ func (t *Ticker) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (ts Tickers) UnmarshalJSON(data []byte) error {
+	var arr []json.RawMessage
+
+	if err := json.Unmarshal(data, &arr); err != nil {
+		return err
+	}
+
+	for _, v := range arr {
+		var ticker Ticker
+
+		err := json.Unmarshal(v, &ticker)
+		if ticker.Volume == 0 {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		ts = append(ts, ticker)
+	}
+
 	return nil
 }

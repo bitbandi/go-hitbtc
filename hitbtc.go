@@ -135,7 +135,7 @@ func (b *HitBtc) GetOrderbook(market string) (orderbook Orderbook, err error) {
 }
 
 // GetAllTicker is used to get the current ticker values for all markets.
-func (b *HitBtc) GetAllTicker() (tickers []Ticker, err error) {
+func (b *HitBtc) GetAllTicker() (tickers Tickers, err error) {
 	r, err := b.client.do("GET", "public/ticker", nil, false)
 	if err != nil {
 		return
@@ -168,31 +168,18 @@ func (b *HitBtc) GetBalances() (balances []Balance, err error) {
 	return
 }
 
-// Getbalance is used to retrieve the balance from your account for a specific currency.
+// GetBalance is used to retrieve the balance from your account for a specific currency.
 // currency: a string literal for the currency (ex: LTC)
 func (b *HitBtc) GetBalance(currency string) (balance Balance, err error) {
-	r, err := b.client.do("GET", "payment/balance", nil, true)
-	if err != nil {
-		return
-	}
-	var response interface{}
-	if err = json.Unmarshal(r, &response); err != nil {
-		return
-	}
-	if err = handleErr(response); err != nil {
-		return
-	}
-	var balances []Balance
+	balances, err := b.GetBalances()
 	currency = strings.ToUpper(currency)
-	err = json.Unmarshal(r, &balances)
-	if err != nil {
-		return
-	}
+	
 	for _, balance = range balances {
 		if balance.Currency == currency {
 			return
 		}
 	}
+
 	return Balance{}, errors.New("Currency not found")
 }
 
