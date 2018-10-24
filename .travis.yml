@@ -1,0 +1,9 @@
+language: go
+
+go:
+  - "1.11"
+
+sudo: false
+before_install: go get -t ./...
+
+script: go test ./...
