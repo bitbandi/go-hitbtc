@@ -173,7 +173,7 @@ func (b *HitBtc) GetBalances() (balances []Balance, err error) {
 func (b *HitBtc) GetBalance(currency string) (balance Balance, err error) {
 	balances, err := b.GetBalances()
 	currency = strings.ToUpper(currency)
-	
+
 	for _, balance = range balances {
 		if balance.Currency == currency {
 			return
@@ -368,5 +368,46 @@ func (b *HitBtc) Withdraw(address string, currency string, amount float64) (with
 		return
 	}
 	withdrawID = withdraw.ID
+	return
+}
+
+type transferType string
+
+const (
+	// TransferTypeBankToExchange represent a transfer from bank (withdraw) balance to exchange (trading) balance.
+	TransferTypeBankToExchange transferType = "bankToExchange"
+	// TransferTypeExchangeToBank represent a transfer from exchange (trading) balance to bank (withdraw) balance.
+	TransferTypeExchangeToBank transferType = "exchangeToBank"
+)
+
+// TransferBalance performs a balance transfer operation between trading and bank accounts (both directions).
+func (b *HitBtc) TransferBalance(currency string, amount float64, transferType transferType) (transferID string, err error) {
+	type transferResponse struct {
+		ID string `json:"id,required"`
+	}
+
+	payload := map[string]string{
+		"currency": currency,
+		"amount":   fmt.Sprint(amount),
+		"type":     string(transferType),
+	}
+
+	r, err := b.client.do("POST", "account/transfer", payload, true)
+	if err != nil {
+		return
+	}
+	var response interface{}
+	if err = json.Unmarshal(r, &response); err != nil {
+		return
+	}
+	if err = handleErr(response); err != nil {
+		return
+	}
+
+	var transfer transferResponse
+	if err = json.Unmarshal(r, &transfer); err != nil {
+		return
+	}
+	transferID = transfer.ID
 	return
 }
