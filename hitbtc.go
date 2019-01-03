@@ -281,7 +281,7 @@ func (b *HitBtc) GetOpenOrders() (orders []Order, err error) {
 
 // PlaceOrder creates a new order.
 func (b *HitBtc) PlaceOrder(requestOrder Order) (responseOrder Order, err error) {
-	payload := make(map[string]string)
+	payload := make(map[string]string, 6)
 
 	payload["symbol"] = requestOrder.Symbol
 	payload["side"] = requestOrder.Side
@@ -290,17 +290,28 @@ func (b *HitBtc) PlaceOrder(requestOrder Order) (responseOrder Order, err error)
 	payload["quantity"] = fmt.Sprintf("%.8f", requestOrder.Quantity)
 	payload["price"] = fmt.Sprintf("%.8f", requestOrder.Price)
 
-	r, err := b.client.do("PUT", "order/"+requestOrder.ClientOrderId, payload, true)
+	method := "POST"
+	resource := "order"
+
+	if requestOrder.ClientOrderId != "" {
+		method = "PUT"
+		resource = fmt.Sprintf("%s/%s", resource, requestOrder.ClientOrderId)
+	}
+
+	r, err := b.client.do(method, resource, payload, true)
 	if err != nil {
 		return
 	}
+
 	var response interface{}
 	if err = json.Unmarshal(r, &response); err != nil {
 		return
 	}
+
 	if err = handleErr(response); err != nil {
 		return
 	}
+
 	err = json.Unmarshal(r, &responseOrder)
 	return
 }
