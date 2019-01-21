@@ -1,5 +1,6 @@
 package hitbtc
 
+// Symbol represents data of a Currency Pair on a market.
 type Symbol struct {
 	Id                   string  `json:"id"`
 	BaseCurrency         string  `json:"baseCurrency"`

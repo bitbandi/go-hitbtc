@@ -19,9 +19,9 @@ func main() {
 	balances, _ := hitbtc.GetBalances()
 	fmt.Println(len(balances))
 
-	for i, _ := range balances {
-		if balances[i].Currency == "BTC" {
-			fmt.Println(balances[i].Available)
+	for _, bal := range balances {
+		if bal.Currency == "BTC" {
+			fmt.Println(bal.Available)
 		}
 	}
 

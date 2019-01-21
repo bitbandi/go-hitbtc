@@ -93,14 +93,14 @@ func (c *client) doTimeoutRequest(timer *time.Timer, req *http.Request) (*http.R
 }
 
 // do prepare and process HTTP request to HitBtc API
-func (c *client) do(method string, ressource string, payload map[string]string, authNeeded bool) (response []byte, err error) {
+func (c *client) do(method string, resource string, payload map[string]string, authNeeded bool) (response []byte, err error) {
 	connectTimer := time.NewTimer(c.httpTimeout)
 
 	var rawurl string
-	if strings.HasPrefix(ressource, "http") {
-		rawurl = ressource
+	if strings.HasPrefix(resource, "http") {
+		rawurl = resource
 	} else {
-		rawurl = fmt.Sprintf("%s/%s", API_BASE, ressource)
+		rawurl = fmt.Sprintf("%s/%s", API_BASE, resource)
 	}
 	var formData string
 	if method == "GET" {
@@ -127,6 +127,7 @@ func (c *client) do(method string, ressource string, payload map[string]string, 
 	if err != nil {
 		return
 	}
+
 	req.Header.Add("Accept", "application/json")
 
 	// Auth
@@ -145,12 +146,10 @@ func (c *client) do(method string, ressource string, payload map[string]string, 
 
 	defer resp.Body.Close()
 	response, err = ioutil.ReadAll(resp.Body)
-	//fmt.Println(fmt.Sprintf("reponse %s", response), err)
 	if err != nil {
 		return response, err
 	}
 	if resp.StatusCode != 200 && resp.StatusCode != 401 {
-	//if resp.StatusCode != 200 {
 		err = errors.New(resp.Status)
 	}
 	return response, err

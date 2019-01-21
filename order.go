@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Order represents an order made on the exchange.
 type Order struct {
 	ClientOrderId string    `json:"clientOrderId"`
 	Symbol        string    `json:"symbol"`

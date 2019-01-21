@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Transaction represents a transaction of money incoming or leaving the user account.
 type Transaction struct {
 	Id         string    `json:"id"`
 	Index      uint64    `json:"index"`

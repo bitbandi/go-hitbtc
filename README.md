@@ -63,7 +63,27 @@ func main() {
 	// Get balances
 	balances, err := hitbtc.GetBalances()
 	fmt.Println(err, balances)
+
+	// Initialize websocket connection
+	client, err := hitbtc.NewWSClient()
+	if err != nil {
+		handleError(err) // do something
+	}
+	defer client.Close()
+
+	// Subscribe and handle
+	tickerFeed, err := client.SubscribeTicker("ETHBTC")
+	for {
+		ticker := <-tickerFeed
+		fmt.Println(ticker)
+	}
+
+
 }
 ~~~
 
 See ["Examples" folder for more... examples](https://github.com/bitbandi/go-hitbtc/blob/master/examples/hitbtc.go)
+
+# Projects using this library
+
+- Golang Crypto Trading Bot: a framework to create trading bots easily and seamlessly (https://github.com/saniales/golang-crypto-trading-bot)

@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Trade represents a single trade made by a user.
 type Trade struct {
 	Id            uint64    `json:"id"`
 	OrderId       uint64    `json:"orderId"`
@@ -17,6 +18,7 @@ type Trade struct {
 	Timestamp     time.Time `json:"timestamp"`
 }
 
+// UnmarshalJSON allows the obejct to be JSON Unmarshallable.
 func (t *Trade) UnmarshalJSON(data []byte) error {
 	var err error
 	type Alias Trade
