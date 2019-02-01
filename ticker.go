@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-var Tickers []Ticker
+type Tickers []Ticker
 
 //Ticker represents a Ticker from hitbtc API.
 type Ticker struct {
