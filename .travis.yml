@@ -1,10 +1,10 @@
 language: go
 
 go:
-  - "1.11"
+  - "1.18"
 
 before_install: go get -t ./...
-go_import_path: github.com/bitbandi/go-hitbtc
+go_import_path: github.com/sutapurachina/go-hitbtc
 
 sudo: false
 script:

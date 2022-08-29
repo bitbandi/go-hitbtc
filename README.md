@@ -6,7 +6,7 @@ go-hitbtc is an implementation of the HitBTC API (public and private) in Golang.
 This version implement V2 HitBTC API.
 
 ## Import
-	import "github.com/bitbandi/go-hitbtc"
+	go get "github.com/sutapurachina/go-hitbtc"
 	
 ## Usage
 
@@ -17,7 +17,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/bitbandi/go-hitbtc"
+	"github.com/sutapurachina/go-hitbtc"
 )
 
 const (
@@ -44,7 +44,7 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"github.com/bitbandi/go-hitbtc"
+	"github.com/sutapurachina/go-hitbtc"
 )
 
 const (
@@ -82,8 +82,3 @@ func main() {
 }
 ~~~
 
-See ["Examples" folder for more... examples](https://github.com/bitbandi/go-hitbtc/blob/master/examples/hitbtc.go)
-
-# Projects using this library
-
-- Golang Crypto Trading Bot: a framework to create trading bots easily and seamlessly (https://github.com/saniales/golang-crypto-trading-bot)

@@ -2,18 +2,17 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/bitbandi/go-hitbtc"
+	"github.com/sutapurachina/go-hitbtc"
 )
 
 const (
-	API_KEY    = ""
-	API_SECRET = ""
+	ApiKey    = ""
+	ApiSecret = ""
 )
 
 func main() {
 	// hitbtc client
-	hitbtc := hitbtc.New(API_KEY, API_SECRET)
+	hitbtc := hitbtc.New(ApiKey, ApiSecret)
 
 	// GetBalances
 	balances, _ := hitbtc.GetBalances()

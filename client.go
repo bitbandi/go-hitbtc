@@ -100,7 +100,7 @@ func (c *client) do(method string, resource string, payload map[string]string, a
 	if strings.HasPrefix(resource, "http") {
 		rawurl = resource
 	} else {
-		rawurl = fmt.Sprintf("%s/%s", API_BASE, resource)
+		rawurl = fmt.Sprintf("%s/%s", ApiBase, resource)
 	}
 	var formData string
 	if method == "GET" {

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	API_BASE = "https://api.hitbtc.com/api/2" // HitBtc API endpoint
+	ApiBase = "https://api.hitbtc.com/api/3" // HitBtc API endpoint
 )
 
 // New returns an instantiated HitBTC struct
@@ -134,7 +134,6 @@ func (b *HitBtc) GetAllTicker() (tickers Tickers, err error) {
 	return
 }
 
-
 // Market
 
 // GetOrderbook is used to get the current order book for a market.
@@ -153,7 +152,6 @@ func (b *HitBtc) GetOrderbook(market string) (orderbook Orderbook, err error) {
 	err = json.Unmarshal(r, &orderbook)
 	return
 }
-
 
 // Account
 

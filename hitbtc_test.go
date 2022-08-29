@@ -1,10 +1,10 @@
 package hitbtc_test
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
 
-	hitbtc "github.com/bitbandi/go-hitbtc"
-	"github.com/stretchr/testify/require"
+	"github.com/sutapurachina/go-hitbtc"
 )
 
 const (
@@ -15,8 +15,8 @@ const (
 )
 
 var (
-	hitBtc              *hitbtc.HitBtc = hitbtc.New(apiKey, apiSecret)
-	defaultErrorMessage string         = "There should be no error"
+	hitBtc              = hitbtc.New(apiKey, apiSecret)
+	defaultErrorMessage = "There should be no error"
 )
 
 func TestGetCurrencies(t *testing.T) {

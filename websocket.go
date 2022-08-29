@@ -7,11 +7,11 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/juju/errors"
-	jsonrpc2 "github.com/sourcegraph/jsonrpc2"
+	"github.com/sourcegraph/jsonrpc2"
 	jsonrpc2ws "github.com/sourcegraph/jsonrpc2/websocket"
 )
 
-const wsAPIURL string = "wss://api.hitbtc.com/api/2/ws"
+const wsAPIURL string = "wss://api.hitbtc.com/api/3/ws"
 
 // responseChannels handles all incoming data from the hitbtc connection.
 type responseChannels struct {
@@ -433,14 +433,14 @@ type WSCandlesSubscriptionRequest struct {
 	Period string `json:"period,required"`
 }
 
-// WSNotificationCandlesSnapshot is subscribe response type to candles on websocket
+// WSNotificationCandlesSnapshot is subscribed response type to candles on websocket
 type WSNotificationCandlesSnapshot struct {
 	Data   []WSCandles `json:"data,required"`
 	Symbol string      `json:"symbol,required"`
 	Period string      `json:"period,required"`
 }
 
-// WSNotificationCandlesUpdate is subscribe response type to candles on websocket
+// WSNotificationCandlesUpdate is subscribed response type to candles on websocket
 type WSNotificationCandlesUpdate struct {
 	Data   WSCandles `json:"data,required"`
 	Symbol string    `json:"symbol,required"`
